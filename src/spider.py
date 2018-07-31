@@ -1,5 +1,12 @@
 # coding: utf-8
+import threading
+from atomos import atomic
+from concurrent.futures import ThreadPoolExecutor
 
+
+STAT_INIT = 0
+STAT_RUNNING = 1
+STAT_STOPPED = 2
 
 class Spider:
     """
@@ -11,7 +18,8 @@ class Spider:
         pipeline = None
         downloader = None
         processor = None
-        pass
+        self.stat = atomic.AtomicInteger(STAT_INIT)
+        self.threadPool = ThreadPoolExecutor()
 
     def run(self):
         pass
@@ -20,3 +28,6 @@ class Spider:
         # 初始化请求队列
         # 开始运行
 
+        while self.stat == STAT_INIT:
+            # 弹出request
+            pass
