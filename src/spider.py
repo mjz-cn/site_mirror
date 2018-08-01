@@ -14,10 +14,11 @@ class Spider:
     """
 
     def __init__(self):
-        scheduler = ''
-        pipeline = None
-        downloader = None
-        processor = None
+        #
+        self.scheduler = None
+        self.pipeline = None
+        self.downloader = None
+        self.processor = None
         self.stat = atomic.AtomicInteger(STAT_INIT)
         self.threadPool = ThreadPoolExecutor()
 
@@ -30,4 +31,4 @@ class Spider:
 
         while self.stat == STAT_INIT:
             # 弹出request
-            pass
+            request = self.scheduler.poll()
