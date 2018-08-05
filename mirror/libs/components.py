@@ -2,10 +2,17 @@
 import requests
 
 
+class SpiderException(Exception):
+    def __init__(self, message, errors):
+        super().__init__(message)
+
+        self.errors = errors
+
+
 class Request:
 
-    def __init__(self):
-        self.url = None
+    def __init__(self, url):
+        self.url = url
         self.extras = dict()
         self.request = None
 
