@@ -10,3 +10,5 @@ class Downloader:
 
     def download(self, spider, request):
         pass
+
+        headers = spider.get_site()

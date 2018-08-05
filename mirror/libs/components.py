@@ -19,7 +19,7 @@ class Request:
 
 class Page:
 
-    def __init__(self):
+    def __init__(self, url):
         self.request = None
         self.response = None
         # 当前页面产出的目标request
