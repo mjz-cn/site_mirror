@@ -4,11 +4,15 @@ from atomos import atomic
 from concurrent.futures import ThreadPoolExecutor
 
 from mirror.libs import components
-
+from mirror.scheduler.schuduler import MysqlScheduler
+from mirror.downloader.downloader import Downloader
+from mirror.processor.processor import PageProcessor
+from mirror.pipeline.pipeline import LocalFilePipeline
 
 STAT_INIT = 0
 STAT_RUNNING = 1
 STAT_STOPPED = 2
+
 
 def _generate_runner(spider, request):
     def runner():
@@ -44,7 +48,7 @@ class Spider:
         self.downloader = None
         self.processor = None
 
-        self._site = None
+        self._site_config = components.create_site_config()
         self._stat = atomic.AtomicInteger(STAT_INIT)
         self._threadPool = ThreadPoolExecutor()
 
@@ -60,10 +64,19 @@ class Spider:
         """
             初始化各个组件
         """
-        pass
+        if self.scheduler is None:
+            self.scheduler = MysqlScheduler()
+        if self.downloader is None:
+            self.downloader = Downloader()
+        if self.processor is None:
+            self.processor = PageProcessor()
+        if not self.pipelines:
+            self.pipelines = [LocalFilePipeline()]
+        if self._threadPool is None:
+            self._threadPool = ThreadPoolExecutor()
 
     def init_start_requests(self):
-        start_urls = self._site.get_start_urls()
+        start_urls = self._site_config.get_start_urls()
         if start_urls:
             start_requests = list()
             for url in start_urls:
@@ -83,12 +96,31 @@ class Spider:
         while self._stat == STAT_INIT:
             # 获取request
             request = self.scheduler.poll()
-            # 生成runner
-            runner = _generate_runner(self, request)
+
+            def runner():
+                # 下载内容
+                page = self.downloader.download(self, request)
+                if page is None:
+                    return
+                # 解析网页
+                self.processor.process(self, page)
+                # 获取解析后的结果
+                result_items = page.get_result_items()
+                if result_items is None:
+                    return
+                # 获取目标结果
+                for new_req in page.get_target_requests():
+                    self.scheduler.push(self, new_req)
+                # 处理下载后的结果
+                for pipeline in self.pipelines:
+                    pipeline.process(self, result_items)
+
             # 运行
             self._threadPool.submit(runner)
         self._stat.set(STAT_STOPPED)
 
-    def get_site(self):
-        return self._site
+    def get_site_config(self):
+        return self._site_config
 
+    def get_uuid(self):
+        return self._site_config.get_key()
