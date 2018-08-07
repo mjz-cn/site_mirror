@@ -31,10 +31,10 @@ class MysqlScheduler:
         """
             压入未访问过的request
         """
-        request_queue = RequestQueue()
-        request_queue.task_key = self.task_key
-        request_queue.request_json = request.to_json()
-        request_queue.save()
+        if self.is_duplicate(request):
+            return False
+        RequestQueue.insert(task_key = self.task_key, request_json = request.to_json()).execute()
+        return True
 
     def is_visited(self, request):
         """
@@ -44,11 +44,11 @@ class MysqlScheduler:
             return True
         url_md5 = tools.md5(request.url)
         return UrlDuplicateCheck.select().where(UrlDuplicateCheck.task_key == self.task_key,
-                                         UrlDuplicateCheck.url_md5 == url_md5).exists()
+                                                UrlDuplicateCheck.url_md5 == url_md5).exists()
 
     def is_duplicate(self, request):
         """
             判断request是否被访问过，如果没有则插入已访问过的的队列中
         """
-        UrlDuplicateCheck.insert(task_key = self.task_key, url_md5 = tools.md5(request.url)).execute()
+        UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url)).execute()
         return True

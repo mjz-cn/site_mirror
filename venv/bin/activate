@@ -1,6 +1,11 @@
 # This file must be used with "source bin/activate" *from bash*
 # you cannot run it directly
 
+echo "activate python venv"
+
+CURRDIR=`dirname "$0"`
+BASEDIR=`cd "$CURRDIR/.."; pwd`
+
 deactivate () {
     # reset old environment variables
     if [ -n "${_OLD_VIRTUAL_PATH:-}" ] ; then
@@ -37,7 +42,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/mjz/mjz/mirror/venv"
+VIRTUAL_ENV=$BASEDIR
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
