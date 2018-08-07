@@ -1,6 +1,8 @@
 # coding: utf-8
 import configparser
 import os
+import logging.config
+import logging.handlers
 
 _SEPARATOR = "::"
 
@@ -36,6 +38,7 @@ class _Config:
         return self.config.get(section, child_key)
 
 
+# 初始化全局配置
 def init_config():
     a = os.path.realpath(__file__)
     base_path = os.path.dirname(os.path.dirname(a))
@@ -43,4 +46,21 @@ def init_config():
     return _Config(conf_path)
 
 
+# 初始化logging
+def init_log(log_path):
+    log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-8.8s]  %(message)s")
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    file_handler = logging.handlers.TimedRotatingFileHandler(log_path)
+    file_handler.setFormatter(log_formatter)
+    root_logger.addHandler(file_handler)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    root_logger.addHandler(console_handler)
+
+
 global_config = init_config()
+
+init_config(global_config.get("log::path"))
