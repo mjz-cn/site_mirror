@@ -103,7 +103,7 @@ class Site:
         # http user-agent
         self.user_agent = None
         # 默认cookie
-        self.default_cookies = dict()
+        self._default_cookies = dict()
         # 网站编码
         self.charset = "utf-8"
         #
@@ -116,6 +116,7 @@ class Site:
         self.retry_sleep_time = 0
         self.storage_path = ''
         self.key = ''
+        self._start_urls = list()
 
     def accept(self, page):
         """
@@ -123,6 +124,32 @@ class Site:
         :param page: Page
         """
         return True
+
+    @property
+    def start_urls(self):
+        return self._start_urls
+
+    @start_urls.setter
+    def start_urls(self, value):
+        if str(value) == str:
+            self._start_urls = [u.strip() for u in value.split(',')]
+        else:
+            self._start_urls = value
+
+    @property
+    def default_cookies(self):
+        return self._default_cookies
+
+    @default_cookies.setter
+    def default_cookies(self, value):
+        if self._default_cookies is None:
+            self._default_cookies = dict()
+        if str(value) == str:
+            for item in value.split(','):
+                key, value = item.split('=')
+                self._default_cookies[key.strip()] = value.strip()
+        else:
+            self._default_cookies.update(value)
 
 
 def _set(site, name, value):
@@ -146,4 +173,5 @@ def create_site():
     _set(site, 'retry_sleep_time', global_config.get('site::retry_sleep_time'))
     _set(site, 'storage_path', global_config.get('site::storage_path'))
     _set(site, 'key', global_config.get('site::key'))
+    _set(site, 'start_urls', global_config.get('site::start_urls'))
     return Site()

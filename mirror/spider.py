@@ -1,6 +1,9 @@
 # coding: utf-8
+import logging
+
 from atomos import atomic
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 from mirror.libs import components
 from mirror.scheduler.schuduler import MysqlScheduler
@@ -41,6 +44,7 @@ class Spider:
     """
 
     def __init__(self):
+        self.logger = logging.getLogger(Spider.__name__)
         # 运行组件
         self.scheduler = None
         self.pipelines = None
@@ -75,7 +79,7 @@ class Spider:
             self._threadPool = ThreadPoolExecutor()
 
     def init_start_requests(self):
-        start_urls = self._site.get_start_urls()
+        start_urls = self._site.start_urls
         if start_urls:
             start_requests = list()
             for url in start_urls:
@@ -83,6 +87,12 @@ class Spider:
                 start_requests.append(request)
             for request in start_requests:
                 self.scheduler.push(self, request)
+
+    def stop(self):
+        if self._stat.compare_and_set(STAT_RUNNING, STAT_STOPPED):
+            self.logger.info("Stop spider success")
+        else:
+            self.logger.info("Stop spider fail. Stat: " + str(self._stat))
 
     def run(self):
         # 检测当前运行状态
@@ -92,9 +102,11 @@ class Spider:
         # 初始化请求队列
         self.init_start_requests()
 
-        while self._stat == STAT_INIT:
+        while self._stat == STAT_RUNNING:
             # 获取request
             request = self.scheduler.poll()
+            if self._site.sleep_time:
+                time.sleep(self._site.sleep_time / 1000)
 
             def runner():
                 # 下载内容
