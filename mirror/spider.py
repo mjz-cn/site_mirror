@@ -122,4 +122,4 @@ class Spider:
         return self._site
 
     def get_uuid(self):
-        return self._site.get_key()
+        return self._site.key

@@ -3,6 +3,8 @@ import json
 
 import requests
 
+from config.config import global_config
+
 
 class SpiderException(Exception):
     def __init__(self, message, errors):
@@ -102,8 +104,6 @@ class Site:
         self.user_agent = None
         # 默认cookie
         self.default_cookies = dict()
-        # cookie
-        self.cookies = dict()
         # 网站编码
         self.charset = "utf-8"
         #
@@ -114,13 +114,36 @@ class Site:
         self.retry_times = 0
         # 重试间隔
         self.retry_sleep_time = 0
+        self.storage_path = ''
+        self.key = ''
 
     def accept(self, page):
         """
-        判断是否接受此page
+        判断是否接受此page, 根据status_code
         :param page: Page
         """
         return True
 
+
+def _set(site, name, value):
+    if value:
+        setattr(site, name, value)
+
+
 def create_site():
+    """
+    :rtype: Site
+    """
+    site = Site()
+    _set(site, 'domain', global_config.get('site::domain'))
+    _set(site, 'thread_cnt', global_config.get('site::thread_cnt'))
+    _set(site, 'user_agent', global_config.get('site::user_agent'))
+    _set(site, 'default_cookies', global_config.get('site::default_cookies'))
+    _set(site, 'charset', global_config.get('site::charset'))
+    _set(site, 'sleep_time', global_config.get('site::sleep_time'))
+    _set(site, 'time_out', global_config.get('site::time_out'))
+    _set(site, 'retry_times', global_config.get('site::retry_times'))
+    _set(site, 'retry_sleep_time', global_config.get('site::retry_sleep_time'))
+    _set(site, 'storage_path', global_config.get('site::storage_path'))
+    _set(site, 'key', global_config.get('site::key'))
     return Site()

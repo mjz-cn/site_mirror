@@ -1,11 +1,8 @@
 # coding: utf-8
 
-from urllib.parse import urljoin
-
 from pyquery import PyQuery as pq
 
 from mirror.libs.components import Request
-
 from mirror.libs import tools
 
 
@@ -20,11 +17,13 @@ class PageProcessor:
         """
         重新构造url，过滤掉无效的字符
         """
-        if target_url.startswith('#') or 'javascript:;' == target_url:
+        if not target_url:
             return
-        target_url = urljoin(page.url, target_url)
+        target_url = tools.abs_url(page.url, target_url)
+        # 删除fragment
+        target_url = tools.delete_fragment(target_url)
         # 检测url域名是否与当前网站域名一致
-        if not tools.has_same_domain(self.task_domain, target_url):
+        if not target_url or not tools.has_same_domain(self.task_domain, target_url):
             return
         return Request(target_url)
 
@@ -33,10 +32,9 @@ class PageProcessor:
         :type page: mirror.libs.components.Page
         """
         # 仅解析html页面
-        if 'text/html' != page.content_type:
+        if not tools.is_html(page.content_type):
             return
         query = pq(page.text)
-
         for tag in query('*'):
             # href or src
             target_url = tag.get('href')
