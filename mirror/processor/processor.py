@@ -10,20 +10,21 @@ class PageProcessor:
 
     def __init__(self, task):
         self.task = task
-        self.task_domain = tools.get_domain(task.get_site().domain)
+        self.task_domain = task.get_site().domain
         self.task_key = self.task.get_uuid()
 
     def get_target_request(self, page, target_url):
         """
         重新构造url，过滤掉无效的字符
         """
-        if not target_url:
+        if not target_url or target_url.startswith('javascript:') or target_url.startswith('mailto:'):
             return
+
         target_url = tools.abs_url(page.url, target_url)
         # 删除fragment
         target_url = tools.delete_fragment(target_url)
         # 检测url域名是否与当前网站域名一致
-        if not target_url or not tools.has_same_domain(self.task_domain, target_url):
+        if not target_url or not tools.has_same_host(self.task_domain, target_url):
             return
         return Request(target_url)
 
@@ -35,7 +36,7 @@ class PageProcessor:
         if not tools.is_html(page.content_type):
             return
         query = pq(page.text)
-        for tag in query('*'):
+        for tag in query('[href],[src]'):
             # href or src
             target_url = tag.get('href')
             if not target_url:

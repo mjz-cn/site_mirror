@@ -1,6 +1,7 @@
 # coding: utf-8
 import logging
 import os
+import threading
 
 from pyquery import PyQuery
 
@@ -17,7 +18,8 @@ class LocalFilePipeline:
         self.task = task
         self.site = task.get_site()
         self.task_key = self.task.get_uuid()
-        self.task_domain = tools.get_domain(task.get_site().domain)
+        self.task_domain = tools.get_host(task.get_site().domain)
+        self.lock = threading.Lock()
 
     def to_file_path(self, url):
         """
@@ -36,8 +38,9 @@ class LocalFilePipeline:
 
     def check_path(self, file_path):
         directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        with self.lock:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
 
     def filter_query(self, page, url):
         url = tools.abs_url(page.url, url)
@@ -59,7 +62,7 @@ class LocalFilePipeline:
         :param url: url为包含域名的完整的URL
         """
         # 过滤掉其它域名的URL
-        if not tools.has_same_domain(self.task_domain, url):
+        if not tools.has_same_host(self.task_domain, url):
             return
         # 网页中的路径转换成本地的路径
 
@@ -84,7 +87,7 @@ class LocalFilePipeline:
         # 解析页面，替换其中所有的url
         page_query = PyQuery(page.text)
         # 替换所有的href, src
-        for tag in page_query('*'):
+        for tag in page_query('[href],[src]'):
             # 判断是否含有href, src
             tag = PyQuery(tag)
             attr_name = 'href'
@@ -92,13 +95,15 @@ class LocalFilePipeline:
             if not url:
                 attr_name = 'src'
                 url = tag.attr(attr_name)
+            if not url:
+                continue
             # 过滤参数
             url = self.filter_query(page, url)
             if url:
                 url = self.to_local_url(page, url)
-            tag.attr(attr_name, url)
+                tag.attr(attr_name, url)
 
-        return page_query.outer_html().encoding(page.encoding)
+        return page_query.outer_html().encode(page.encoding)
 
     def process(self, page):
         """

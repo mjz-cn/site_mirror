@@ -32,7 +32,9 @@ class MysqlScheduler:
         if request_queue is None:
             return None
         request_queue.delete_instance()
-        return Request.create(request_queue.request_json)
+        request = Request.create(request_queue.request_json)
+        self.logger.debug("Poll request, url: " + request.url)
+        return request
 
     def push(self, request):
         """

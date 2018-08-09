@@ -54,10 +54,14 @@ class Page:
         self._content_type = None
 
         # 当前页面产出的目标request
-        self.targetRequests = set()
+        self._target_requests = set()
 
     def add_target_request(self, request):
-        self.targetRequests.add(request)
+        self._target_requests.add(request)
+
+    @property
+    def target_requests(self):
+        return self._target_requests
 
     @property
     def status_code(self):
@@ -100,6 +104,7 @@ class Site:
         self.domain = None
         # 线程数量
         self.thread_cnt = 0
+        self.headers = dict()
         # http user-agent
         self.user_agent = None
         # 默认cookie

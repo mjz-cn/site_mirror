@@ -9,6 +9,11 @@ from urllib import parse
 from atomos import atomic
 
 
+def _raise_thread_exception(future):
+    if future._exception:
+        raise future._exception
+
+
 class CountableThreadPool:
 
     def __init__(self, thread_cnt, thread_prefix):
@@ -37,7 +42,8 @@ class CountableThreadPool:
                     self._thread_alive.get_and_subtract(1)
                     self._condition.notify()
 
-        self._thread_pool.submit(runner_wrapper)
+        future = self._thread_pool.submit(runner_wrapper)
+        future.add_done_callback(_raise_thread_exception)
 
     def get_thread_alive(self):
         return self._thread_alive.get()
@@ -78,15 +84,15 @@ def md5(s):
     return m.hexdigest()
 
 
-def get_domain(url):
+def get_host(url):
     if not url:
         return
     u = parse.urlparse(url)
     return u.hostname
 
 
-def has_same_domain(url1, url2):
-    return get_domain(url1) == get_domain(url2)
+def has_same_host(url1, url2):
+    return get_host(url1) == get_host(url2)
 
 
 def delete_fragment(url):

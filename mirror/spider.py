@@ -116,36 +116,35 @@ class Spider:
             if request is None:
                 # 如果没有新的request并且没有正在执行的线程，则表示本次任务执行完成
                 if self._threadPool.get_thread_alive() == 0:
+                    self.logger.info("Stop spider!")
                     break
                 self.wait_new_url()
             else:
-                def runner():
-                    try:
-                        self.logger.info("Begin to handle request, url:" + request.url)
-                        # 下载内容
-                        page = self.downloader.download(request)
-                        if page is None:
-                            return
-                        # 解析网页
-                        self.processor.process(page)
-                        # 获取解析后的结果
-                        result_items = page.get_result_items()
-                        if result_items is None:
-                            return
-                        # 获取目标结果
-                        for new_req in page.get_target_requests():
-                            self.scheduler.push(new_req)
-                        # 处理下载后的结果
-                        for pipeline in self.pipelines:
-                            pipeline.process(result_items)
+                def new_runner(req):
+                    def runner():
+                        try:
+                            self.logger.info("Begin to handle request, url:" + req.url)
+                            # 下载内容
+                            page = self.downloader.download(req)
+                            if page is None:
+                                return
+                            # 解析网页
+                            self.processor.process(page)
+                            # 获取目标结果
+                            for new_req in page.target_requests:
+                                self.scheduler.push(new_req)
 
-                    except Exception as e:
-                        self.logger.error("Process request error, url: {}, exception: {}".format(request.url, e))
-                        raise e
-                    finally:
-                        self.signal_new_url()
+                            # 处理下载后的结果
+                            for pipeline in self.pipelines:
+                                pipeline.process(page)
 
-                self._threadPool.submit(runner)
+                        except Exception as e:
+                            self.logger.error("Process request error, url: {}, exception: {}".format(req.url, e))
+                            raise e
+                        finally:
+                            self.signal_new_url()
+                    return runner
+                self._threadPool.submit(new_runner(request))
         self._stat.set(STAT_STOPPED)
 
     def wait_new_url(self):

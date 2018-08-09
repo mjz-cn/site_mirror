@@ -4,6 +4,8 @@ import os
 import logging.config
 import logging.handlers
 
+import config.colorlog
+
 _SEPARATOR = "::"
 _CONF_NAME = 'conf.ini'
 
@@ -71,7 +73,7 @@ def init_log(log_path):
     log_dir = os.path.dirname(log_path)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-8.8s]  %(message)s")
+    log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(name)s] [%(levelname)-8.8s]  %(message)s")
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
 

@@ -13,6 +13,7 @@ echo "------------------------- 开始初始化python虚拟环境 --------------
 cd ${PROJECT_DIR}
 # 创建虚拟环境
 python3 -m venv venv
+sleep 1
 # 激活venv
 source 'venv/bin/activate'
 # 安装python3依赖库

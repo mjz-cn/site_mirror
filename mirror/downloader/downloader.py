@@ -25,7 +25,7 @@ class Downloader:
         :type request: mirror.libs.components.Request
         """
         url = request.url
-        headers = self.task.get_site()
+        headers = self.site.headers
         try:
             resp = requests.get(url, headers=headers)
         except RequestException as e:
