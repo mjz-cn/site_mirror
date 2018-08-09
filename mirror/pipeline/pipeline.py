@@ -34,6 +34,11 @@ class LocalFilePipeline:
             path = os.path.join(path, dire)
         return path
 
+    def check_path(self, file_path):
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
     def filter_query(self, page, url):
         url = tools.abs_url(page.url, url)
         mu = tools.MutableUrl(url)
@@ -50,6 +55,7 @@ class LocalFilePipeline:
     def to_local_url(self, page, url):
         """
         将url转换为本地的url
+        :param page: 产生当前url的page
         :param url: url为包含域名的完整的URL
         """
         # 过滤掉其它域名的URL
@@ -100,7 +106,11 @@ class LocalFilePipeline:
         :param page:
         :return:
         """
+        # 存储文件路径
         file_path = self.to_file_path(page.url)
+        # 检测目录是否存在，不存在则创建新目录
+        self.check_path(file_path)
+        # 获取原始数据, 如果是html页面则替换其中的url为本地的url
         raw_data = self.reconstruct_data(page)
         # 存储
         with open(file_path, 'wb') as fd:

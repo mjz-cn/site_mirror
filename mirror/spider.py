@@ -1,11 +1,12 @@
 # coding: utf-8
 import logging
+import threading
 
 from atomos import atomic
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-from mirror.libs import components
+from mirror.libs import components, tools
 from mirror.scheduler.schuduler import MysqlScheduler
 from mirror.downloader.downloader import Downloader
 from mirror.processor.processor import PageProcessor
@@ -43,7 +44,7 @@ class Spider:
         组合其它组件来完成下载任务
     """
 
-    def __init__(self):
+    def __init__(self, site):
         self.logger = logging.getLogger(Spider.__name__)
         # 运行组件
         self.scheduler = None
@@ -51,9 +52,11 @@ class Spider:
         self.downloader = None
         self.processor = None
 
-        self._site = components.create_site()
+        self._site = site
         self._stat = atomic.AtomicInteger(STAT_INIT)
-        self._threadPool = ThreadPoolExecutor()
+        self._new_url_lock = threading.RLock()
+        self._new_url_condition = threading.Condition(self._new_url_lock)
+        self._threadPool = tools.CountableThreadPool(site.thread_cnt, site.key)
 
     def check_running_stat(self):
         while True:
@@ -86,7 +89,9 @@ class Spider:
                 request = components.Request(url)
                 start_requests.append(request)
             for request in start_requests:
-                self.scheduler.push(self, request)
+                self.scheduler.push(request)
+        else:
+            self.logger.warning("Spider has no start urls")
 
     def stop(self):
         if self._stat.compare_and_set(STAT_RUNNING, STAT_STOPPED):
@@ -101,34 +106,53 @@ class Spider:
         self.init_component()
         # 初始化请求队列
         self.init_start_requests()
-
-        while self._stat == STAT_RUNNING:
+        self.logger.info("Start to run spider")
+        while self._stat.get() == STAT_RUNNING:
             # 获取request
             request = self.scheduler.poll()
             if self._site.sleep_time:
                 time.sleep(self._site.sleep_time / 1000)
 
-            def runner():
-                # 下载内容
-                page = self.downloader.download(request)
-                if page is None:
-                    return
-                # 解析网页
-                self.processor.process(page)
-                # 获取解析后的结果
-                result_items = page.get_result_items()
-                if result_items is None:
-                    return
-                # 获取目标结果
-                for new_req in page.get_target_requests():
-                    self.scheduler.push(new_req)
-                # 处理下载后的结果
-                for pipeline in self.pipelines:
-                    pipeline.process(result_items)
+            if request is None:
+                # 如果没有新的request并且没有正在执行的线程，则表示本次任务执行完成
+                if self._threadPool.get_thread_alive() == 0:
+                    break
+                self.wait_new_url()
+            else:
+                def runner():
+                    try:
+                        # 下载内容
+                        page = self.downloader.download(request)
+                        if page is None:
+                            return
+                        # 解析网页
+                        self.processor.process(page)
+                        # 获取解析后的结果
+                        result_items = page.get_result_items()
+                        if result_items is None:
+                            return
+                        # 获取目标结果
+                        for new_req in page.get_target_requests():
+                            self.scheduler.push(new_req)
+                        # 处理下载后的结果
+                        for pipeline in self.pipelines:
+                            pipeline.process(result_items)
 
-            # 运行
-            self._threadPool.submit(runner)
+                    except Exception as e:
+                        self.logger.error("Process request error, url: " + request.url)
+                    finally:
+                        self.signal_new_url()
+
+                self._threadPool.submit(runner)
         self._stat.set(STAT_STOPPED)
+
+    def wait_new_url(self):
+        with self._new_url_lock:
+            self._new_url_condition.wait()
+
+    def signal_new_url(self):
+        with self._new_url_lock:
+            self._new_url_condition.notify_all()
 
     def get_site(self):
         return self._site

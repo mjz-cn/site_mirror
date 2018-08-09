@@ -1,7 +1,11 @@
 # coding: utf-8
 
 import json
+import logging
 
+import peewee
+
+from mirror.models import models
 from mirror.libs import tools
 from mirror.models.models import UrlDuplicateCheck, RequestQueue
 from mirror.libs.components import Request
@@ -10,6 +14,7 @@ from mirror.libs.components import Request
 class MysqlScheduler:
 
     def __init__(self, task):
+        self.logger = logging.getLogger(MysqlScheduler.__name__)
         self.task = task
         self.task_key = self.task.get_uuid()
 
@@ -17,11 +22,13 @@ class MysqlScheduler:
         """
             弹出最新的url
         """
-        query = RequestQueue.select()
-        query.where(RequestQueue.task_key == self.task_key)
-        query.order_by(RequestQueue.id.desc())
-        query.limit(1)
-        request_queue = query.get()
+        try:
+            request_queue = RequestQueue.select().where(RequestQueue.task_key == self.task_key).order_by(
+                RequestQueue.id.desc()).limit(1).get()
+        except models.DoesNotExist as e:
+            self.logger.warning("Has no new request")
+            request_queue = None
+
         if request_queue is None:
             return None
         request_queue.delete_instance()
@@ -33,7 +40,8 @@ class MysqlScheduler:
         """
         if self.is_duplicate(request):
             return False
-        RequestQueue.insert(task_key = self.task_key, request_json = request.to_json()).execute()
+        self.logger.debug("push to queue, url: " + request.url)
+        r = RequestQueue.insert(task_key=self.task_key, request_json=request.to_json()).execute()
         return True
 
     def is_visited(self, request):
@@ -50,5 +58,9 @@ class MysqlScheduler:
         """
             判断request是否被访问过，如果没有则插入已访问过的的队列中
         """
-        UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url)).execute()
-        return True
+        try:
+            UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url)).execute()
+        except peewee.IntegrityError as e:
+            self.logger.info("Duplicate url " + str(e))
+            return True
+        return False

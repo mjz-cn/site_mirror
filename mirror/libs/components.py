@@ -131,7 +131,7 @@ class Site:
 
     @start_urls.setter
     def start_urls(self, value):
-        if str(value) == str:
+        if type(value) == str:
             self._start_urls = [u.strip() for u in value.split(',')]
         else:
             self._start_urls = value
@@ -144,7 +144,7 @@ class Site:
     def default_cookies(self, value):
         if self._default_cookies is None:
             self._default_cookies = dict()
-        if str(value) == str:
+        if type(value) == str:
             for item in value.split(','):
                 key, value = item.split('=')
                 self._default_cookies[key.strip()] = value.strip()
@@ -152,26 +152,4 @@ class Site:
             self._default_cookies.update(value)
 
 
-def _set(site, name, value):
-    if value:
-        setattr(site, name, value)
 
-
-def create_site():
-    """
-    :rtype: Site
-    """
-    site = Site()
-    _set(site, 'domain', global_config.get('site::domain'))
-    _set(site, 'thread_cnt', global_config.get('site::thread_cnt'))
-    _set(site, 'user_agent', global_config.get('site::user_agent'))
-    _set(site, 'default_cookies', global_config.get('site::default_cookies'))
-    _set(site, 'charset', global_config.get('site::charset'))
-    _set(site, 'sleep_time', global_config.get('site::sleep_time'))
-    _set(site, 'time_out', global_config.get('site::time_out'))
-    _set(site, 'retry_times', global_config.get('site::retry_times'))
-    _set(site, 'retry_sleep_time', global_config.get('site::retry_sleep_time'))
-    _set(site, 'storage_path', global_config.get('site::storage_path'))
-    _set(site, 'key', global_config.get('site::key'))
-    _set(site, 'start_urls', global_config.get('site::start_urls'))
-    return Site()

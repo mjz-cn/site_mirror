@@ -1,7 +1,46 @@
 # coding: utf-8
 
 import hashlib
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from urllib import parse
+
+from atomos import atomic
+
+
+class CountableThreadPool:
+
+    def __init__(self, thread_cnt, thread_prefix):
+        self.thread_cnt = thread_cnt
+        self._thread_alive = atomic.AtomicInteger()
+        self._thread_pool = ThreadPoolExecutor(thread_cnt, thread_prefix)
+
+        self._reentrant_lock = threading.RLock()
+        self._condition = threading.Condition(self._reentrant_lock)
+
+    def submit(self, runner):
+        # 一次只执行固定数量的线程，如果超过则等待
+        if self._thread_alive.get() >= self.thread_cnt:
+            with self._reentrant_lock:
+                while self._thread_alive.get() >= self.thread_cnt:
+                    self._condition.wait()
+        self._thread_alive.get_and_set(1)
+
+        def runner_wrapper():
+            try:
+                runner()
+            finally:
+                with self._reentrant_lock:
+                    self._thread_alive.get_and_subtract(1)
+                    self._condition.notify()
+
+        self._thread_pool.submit(runner_wrapper)
+
+    def get_thread_alive(self):
+        return self._thread_alive.get()
+
+    def shut_down(self):
+        self._thread_pool.shutdown()
 
 
 class MutableUrl:
