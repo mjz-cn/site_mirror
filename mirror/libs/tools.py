@@ -32,7 +32,7 @@ class CountableThreadPool:
             with self._reentrant_lock:
                 while self._thread_alive.get() >= self.thread_cnt:
                     self._condition.wait()
-        self._thread_alive.get_and_set(1)
+        self._thread_alive.get_and_add(1)
 
         def runner_wrapper():
             try:
