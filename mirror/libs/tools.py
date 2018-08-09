@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import hashlib
+import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from urllib import parse
@@ -11,6 +12,8 @@ from atomos import atomic
 class CountableThreadPool:
 
     def __init__(self, thread_cnt, thread_prefix):
+        if not thread_cnt:
+            thread_cnt = (os.cpu_count() or 1) * 5
         self.thread_cnt = thread_cnt
         self._thread_alive = atomic.AtomicInteger()
         self._thread_pool = ThreadPoolExecutor(thread_cnt, thread_prefix)

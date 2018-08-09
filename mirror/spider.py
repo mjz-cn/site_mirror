@@ -121,6 +121,7 @@ class Spider:
             else:
                 def runner():
                     try:
+                        self.logger.info("Begin to handle request, url:" + request.url)
                         # 下载内容
                         page = self.downloader.download(request)
                         if page is None:
@@ -139,7 +140,8 @@ class Spider:
                             pipeline.process(result_items)
 
                     except Exception as e:
-                        self.logger.error("Process request error, url: " + request.url)
+                        self.logger.error("Process request error, url: {}, exception: {}".format(request.url, e))
+                        raise e
                     finally:
                         self.signal_new_url()
 
