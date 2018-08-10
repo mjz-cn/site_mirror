@@ -107,7 +107,7 @@ def delete_scheme(url):
 
 def abs_url(refer, url):
     # 过滤掉无效的URL
-    if url.startswith('#') or 'javascript:' == url:
+    if url.startswith('#') or url.startswith('javascript:') or url.startswith('mailto:'):
         return
     return parse.urljoin(refer, url)
 

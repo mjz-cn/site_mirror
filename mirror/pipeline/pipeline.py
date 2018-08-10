@@ -71,7 +71,7 @@ class LocalFilePipeline:
         page_url_t = parent_url.replace(common_prefix, '').lstrip('/')
         depth = page_url_t.count('/')
         # 删除page_url中公共前缀，找到剩下的路径深度, 除了公共前缀的
-        local_url = depth * '../' + url.replace(common_prefix, '')
+        local_url = depth * '../' + url.replace(common_prefix, '').lstrip('/')
         if local_url.startswith('/'):
             local_url = '.' + local_url
         return local_url.replace('.//', './')
