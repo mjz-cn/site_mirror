@@ -26,13 +26,16 @@ class PageProcessor:
         if not target_url or target_url.startswith('javascript:') or target_url.startswith('mailto:'):
             return
 
-        target_url = tools.abs_url(page.url, target_url).strip('/')
+        target_url = tools.abs_url(page.url, target_url)
+        if not target_url:
+            return
+        target_url = target_url.strip('/')
         # 删除fragment
         target_url = tools.delete_fragment(target_url)
         # 检测url域名是否与当前网站域名一致
         if not target_url or not tools.has_same_host(self.task_domain, target_url):
             return
-        return Request(target_url, origin_url)
+        return Request(target_url, origin_url, self.task.get_site().charset)
 
     def process_html(self, page):
         query = pq(page.text)

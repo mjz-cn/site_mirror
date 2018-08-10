@@ -86,7 +86,7 @@ class Spider:
         if start_urls:
             start_requests = list()
             for url in start_urls:
-                request = components.Request(url, url)
+                request = components.Request(url, url, self._site.charset)
                 start_requests.append(request)
             for request in start_requests:
                 self.scheduler.push(request)

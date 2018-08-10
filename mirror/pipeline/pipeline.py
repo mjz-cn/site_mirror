@@ -88,7 +88,7 @@ class LocalFilePipeline:
 
     def reconstruct_html(self, page):
         # 解析页面，替换其中所有的url
-        page_query = PyQuery(page.text)
+        page_query = PyQuery(page.raw_content)
         page_filter_url = self.filter_query(page, page.url)
         # 替换所有的href, src
         for tag in page_query('[href],[src]'):
@@ -109,7 +109,12 @@ class LocalFilePipeline:
                 self.logger.error('filter query error, url:' + url)
                 raise e
 
-        return page_query.outer_html().encode(page.encoding)
+        html = page_query.outer_html()
+        try:
+            raw_data = html.encode('utf-8')
+        except UnicodeEncodeError as e:
+            raw_data = html.encode(page.encoding)
+        return raw_data
 
     def reconstruct_css(self, page):
         css_content = page.text
@@ -145,6 +150,10 @@ class LocalFilePipeline:
         file_path = self.to_file_path(file_query)
         # 检测目录是否存在，不存在则创建新目录
         self.check_path(file_path)
+        with open(file_path, 'wb') as fd:
+            self.logger.error("write page, url: {}, file_path:{},  encoding: {}".format(page.url, file_path, page.encoding))
+            fd.write(page.encoding.encode('utf-8') + b'\n\n' + page.raw_content)
+            return
         # 获取原始数据, 如果是html页面则替换其中的url为本地的url
         raw_data = self.reconstruct_data(page)
         # 存储

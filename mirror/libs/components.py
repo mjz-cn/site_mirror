@@ -17,10 +17,11 @@ class Request:
     STATUS_CODE = 'status_code'
     CYCLE_TRIED_TIMES = "_cycle_tried_times"
 
-    def __init__(self, url, origin_url=''):
+    def __init__(self, url, origin_url='', charset=None):
         self.url = url
         self.origin_url = origin_url
         self.extras = dict()
+        self.charset = charset
 
     def put_extra(self, key, value):
         self.extras[key] = value
@@ -55,6 +56,8 @@ class Page:
 
         # 当前页面产出的目标request
         self._target_requests = set()
+        # 从response中解析出的charset, 最优先使用
+        self._header_charset = None
 
     def add_target_request(self, request):
         self._target_requests.add(request)
@@ -81,6 +84,10 @@ class Page:
 
     @property
     def encoding(self):
+        if self._header_charset:
+            return self._header_charset
+        elif self.response.apparent_encoding:
+            return self.response.apparent_encoding
         return self.response.encoding
 
     @property
