@@ -17,10 +17,10 @@ class Request:
     STATUS_CODE = 'status_code'
     CYCLE_TRIED_TIMES = "_cycle_tried_times"
 
-    def __init__(self, url):
+    def __init__(self, url, origin_url=''):
         self.url = url
+        self.origin_url = origin_url
         self.extras = dict()
-        self.request = None
 
     def put_extra(self, key, value):
         self.extras[key] = value
@@ -34,7 +34,7 @@ class Request:
 
     @staticmethod
     def create(j):
-        r = Request(None)
+        r = Request(None, None)
         r.__dict__ = json.loads(j)
         return r
 
@@ -155,6 +155,3 @@ class Site:
                 self._default_cookies[key.strip()] = value.strip()
         else:
             self._default_cookies.update(value)
-
-
-

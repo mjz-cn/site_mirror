@@ -10,10 +10,12 @@ CREATE TABLE IF NOT EXISTS `t_url_duplicate_check` (
   `task_key` varchar(50) NOT NULL DEFAULT '',
   `url_md5` varchar(50) NOT NULL DEFAULT '',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `url` varchar(600) NOT NULL DEFAULT '' COMMENT '此次所请求的url',
+  `origin_url` varchar(600) NOT NULL DEFAULT '' COMMENT '原始URL',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_task_url` (`task_key`,`url_md5`),
-  KEY `idx_task` (`task_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
+  KEY `idx_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 CREATE TABLE IF NOT EXISTS `t_request_queue` (
@@ -24,4 +26,4 @@ CREATE TABLE IF NOT EXISTS `t_request_queue` (
   PRIMARY KEY (`id`),
   KEY `idx_task` (`task_key`),
   KEY `idx_time` (`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

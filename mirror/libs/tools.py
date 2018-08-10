@@ -99,12 +99,31 @@ def delete_fragment(url):
     return parse.urldefrag(url).url
 
 
+def delete_scheme(url):
+    mu = MutableUrl(url)
+    mu.scheme = ''
+    return mu.to_new_url().lstrip('/')
+
+
 def abs_url(refer, url):
     # 过滤掉无效的URL
-    if url.startswith('#') or 'javascript:;' == url:
+    if url.startswith('#') or 'javascript:' == url:
         return
     return parse.urljoin(refer, url)
 
 
 def is_html(content_type):
     return 'text/html' == content_type
+
+
+def is_css(content_type):
+    return 'text/css' == content_type
+
+
+def should_process(content_type):
+    return content_type in ['text/html', 'text/css']
+
+
+def common_path(url1, url2):
+    li = os.path.commonprefix([url1.split('/'), url2.split('/')])
+    return '/'.join(li)

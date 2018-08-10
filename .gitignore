@@ -4,3 +4,4 @@
 *.iml
 venv
 runtime
+.DS_Store

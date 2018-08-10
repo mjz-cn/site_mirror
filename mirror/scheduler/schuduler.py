@@ -61,8 +61,9 @@ class MysqlScheduler:
             判断request是否被访问过，如果没有则插入已访问过的的队列中
         """
         try:
-            UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url)).execute()
+            UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url), url=request.url,
+                                     origin_url=request.origin_url).execute()
         except peewee.IntegrityError as e:
-            self.logger.info("Duplicate url " + str(e))
+            self.logger.debug("Duplicate url:{}, ex:{} ".format(request.url, str(e)))
             return True
         return False

@@ -18,32 +18,24 @@ class LocalFilePipeline:
         self.task = task
         self.site = task.get_site()
         self.task_key = self.task.get_uuid()
-        self.task_domain = tools.get_host(task.get_site().domain)
+        self.task_domain = task.get_site().domain
         self.lock = threading.Lock()
-
-    def to_file_path(self, url):
-        """
-        将url转换为本地的文件路径，用于存储
-        """
-        if url.endswith('/'):
-            url += 'index.html'
-        if '://' in url:
-            pos = url.find('/')
-            url = url[pos + 2:]
-        dires = url.split('/')
-        path = self.site.storage_path
-        for dire in dires:
-            path = os.path.join(path, dire)
-        return path
 
     def check_path(self, file_path):
         directory = os.path.dirname(file_path)
         with self.lock:
             if not os.path.exists(directory):
                 os.makedirs(directory)
+            elif not os.path.isdir(directory):
+                self.logger.error("{} is a file, not directory".format(directory))
 
     def filter_query(self, page, url):
+        """
+        处理url中的参数，将参数当作url的路径来处理
+        """
         url = tools.abs_url(page.url, url)
+        if not url:
+            return
         mu = tools.MutableUrl(url)
         if mu.query:
             li = mu.path.split('/')
@@ -52,29 +44,44 @@ class LocalFilePipeline:
             li[-1] = name
             mu.path = '/'.join(li)
             mu.query = ''
-            url = mu.to_new_url()
-        return url
+        li = mu.path.split('/')
+        if not li[-1]:
+            li[-1] = 'index.html'
+        elif li[-1].find('.') == -1:
+            li[-1] += '/index.html'
+        mu.path = '/'.join(li)
+        return mu.to_new_url()
 
-    def to_local_url(self, page, url):
+    def to_local_url(self, parent_url, url):
         """
         将url转换为本地的url
-        :param page: 产生当前url的page
+        :param parent_url: 产生当前url的page
         :param url: url为包含域名的完整的URL
         """
         # 过滤掉其它域名的URL
         if not tools.has_same_host(self.task_domain, url):
             return
         # 网页中的路径转换成本地的路径
+        # 找到公共前缀
+        common_prefix = tools.common_path(parent_url, url) + '/'
+        # 找到最近的路径前缀
+        page_url_t = parent_url.replace(common_prefix, '')
+        depth = page_url_t.count('/')
+        # 删除page_url中公共前缀，找到剩下的路径深度, 除了公共前缀的
+        local_url = depth * '../' + url.replace(common_prefix, '')
+        if local_url.startswith('/'):
+            local_url = '.' + local_url
+        return local_url
 
-        if '://' in url:
-            if url.startswith(self.task_domain):
-                url = url.replace(self.task_domain, '')
-                cnt = page.url.count('/') - 3
-                for i in range(cnt):
-                    url = '../' + url
-        if url.startswith('/'):
-            url = '.' + url
-        return url
+    def to_file_path(self, url):
+        """
+        将url转换为本地的文件路径，用于存储
+        """
+        # 删除fragment
+        url = tools.delete_fragment(url)
+        url = tools.delete_scheme(url)
+        path = os.path.join(self.site.storage_path, url)
+        return path
 
     def reconstruct_data(self, page):
         """
@@ -86,6 +93,7 @@ class LocalFilePipeline:
             return page.raw_content
         # 解析页面，替换其中所有的url
         page_query = PyQuery(page.text)
+        page_filter_url = self.filter_query(page, page.url)
         # 替换所有的href, src
         for tag in page_query('[href],[src]'):
             # 判断是否含有href, src
@@ -95,13 +103,15 @@ class LocalFilePipeline:
             if not url:
                 attr_name = 'src'
                 url = tag.attr(attr_name)
-            if not url:
-                continue
             # 过滤参数
-            url = self.filter_query(page, url)
-            if url:
-                url = self.to_local_url(page, url)
-                tag.attr(attr_name, url)
+            try:
+                url = self.filter_query(page, url)
+                if url:
+                    url = self.to_local_url(page_filter_url, url)
+                    tag.attr(attr_name, url)
+            except Exception as e:
+                self.logger.error('filter query error, url:' + url)
+                raise e
 
         return page_query.outer_html().encode(page.encoding)
 
@@ -112,7 +122,8 @@ class LocalFilePipeline:
         :return:
         """
         # 存储文件路径
-        file_path = self.to_file_path(page.url)
+        file_query = self.filter_query(page, page.url)
+        file_path = self.to_file_path(file_query)
         # 检测目录是否存在，不存在则创建新目录
         self.check_path(file_path)
         # 获取原始数据, 如果是html页面则替换其中的url为本地的url

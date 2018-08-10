@@ -86,7 +86,7 @@ class Spider:
         if start_urls:
             start_requests = list()
             for url in start_urls:
-                request = components.Request(url)
+                request = components.Request(url, url)
                 start_requests.append(request)
             for request in start_requests:
                 self.scheduler.push(request)
@@ -116,7 +116,7 @@ class Spider:
             if request is None:
                 # 如果没有新的request并且没有正在执行的线程，则表示本次任务执行完成
                 if self._threadPool.get_thread_alive() == 0:
-                    self.logger.info("Stop spider!")
+                    self.logger.info("Complete spider task!")
                     break
                 self.wait_new_url()
             else:

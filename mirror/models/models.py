@@ -34,6 +34,8 @@ class UrlDuplicateCheck(BaseModel):
     id = IntegerField(index=True)
     task_key = CharField(index=True)
     url_md5 = CharField(constraints=[SQL("DEFAULT ''")])
+    url = CharField(constraints=[SQL("DEFAULT ''")])
+    origin_url = CharField()
 
     class Meta:
         table_name = 't_url_duplicate_check'
