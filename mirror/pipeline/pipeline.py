@@ -2,10 +2,13 @@
 import logging
 import os
 import threading
+import re
 
 from pyquery import PyQuery
 
 from mirror.libs import tools
+
+r_url = re.compile(r'[^\w]+url\(([^)]+)\)')
 
 
 class LocalFilePipeline:
@@ -63,15 +66,15 @@ class LocalFilePipeline:
             return
         # 网页中的路径转换成本地的路径
         # 找到公共前缀
-        common_prefix = tools.common_path(parent_url, url) + '/'
+        common_prefix = tools.common_path(parent_url, url)
         # 找到最近的路径前缀
-        page_url_t = parent_url.replace(common_prefix, '')
+        page_url_t = parent_url.replace(common_prefix, '').lstrip('/')
         depth = page_url_t.count('/')
         # 删除page_url中公共前缀，找到剩下的路径深度, 除了公共前缀的
         local_url = depth * '../' + url.replace(common_prefix, '')
         if local_url.startswith('/'):
             local_url = '.' + local_url
-        return local_url
+        return local_url.replace('.//', './')
 
     def to_file_path(self, url):
         """
@@ -83,14 +86,7 @@ class LocalFilePipeline:
         path = os.path.join(self.site.storage_path, url)
         return path
 
-    def reconstruct_data(self, page):
-        """
-        将page中的URL替换成本地对应的URL
-        :type page: mirror.libs.components.Page
-        """
-        # 仅处理html页面中的URL
-        if not tools.is_html(page.content_type):
-            return page.raw_content
+    def reconstruct_html(self, page):
         # 解析页面，替换其中所有的url
         page_query = PyQuery(page.text)
         page_filter_url = self.filter_query(page, page.url)
@@ -114,6 +110,29 @@ class LocalFilePipeline:
                 raise e
 
         return page_query.outer_html().encode(page.encoding)
+
+    def reconstruct_css(self, page):
+        css_content = page.text
+        page_filter_url = self.filter_query(page, page.url)
+        for origin_url in r_url.findall(css_content):
+            url = self.filter_query(page, origin_url)
+            if url:
+                url = self.to_local_url(page_filter_url, url)
+                css_content = css_content.replace(origin_url, url)
+        return css_content.encode(page.encoding)
+
+    def reconstruct_data(self, page):
+        """
+        将page中的URL替换成本地对应的URL
+        :type page: mirror.libs.components.Page
+        """
+        # 仅处理html页面中的URL
+        if tools.is_html(page.content_type):
+            return self.reconstruct_html(page)
+        elif tools.is_css(page.content_type):
+            return self.reconstruct_css(page)
+        else:
+            return page.raw_content
 
     def process(self, page):
         """
