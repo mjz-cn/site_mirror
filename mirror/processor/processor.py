@@ -7,7 +7,7 @@ from pyquery import PyQuery as pq
 from mirror.libs.components import Request, SpiderException
 from mirror.libs import tools
 
-r_url = re.compile(r':\s*url\(([^)]+)\)')
+r_url = re.compile(r'[^\w]+url\(([^)]+)\)')
 
 
 class PageProcessor:

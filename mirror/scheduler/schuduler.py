@@ -1,6 +1,4 @@
 # coding: utf-8
-
-import json
 import logging
 
 import peewee
@@ -26,14 +24,14 @@ class MysqlScheduler:
             request_queue = RequestQueue.select().where(RequestQueue.task_key == self.task_key).order_by(
                 RequestQueue.id.desc()).limit(1).get()
         except models.DoesNotExist as e:
-            self.logger.warning("Has no new request")
+            self.logger.debug("Has no new request")
             request_queue = None
 
         if request_queue is None:
             return None
         request_queue.delete_instance()
         request = Request.create(request_queue.request_json)
-        self.logger.debug("Poll request, url: " + request.url)
+        self.logger.info("Poll request, url: " + request.url)
         return request
 
     def push(self, request):

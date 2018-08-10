@@ -8,8 +8,10 @@ database = MySQLDatabase('mirror', **{'charset': 'utf8',
                                       'use_unicode': True,
                                       'host': global_config.get('mysql::host'),
                                       'user': global_config.get('mysql::user'),
-                                      'password': global_config.get('mysql::password')}
+                                      'password': global_config.get('mysql::password'),
+                                      }
                          )
+database.connect_params['autocommit'] = True
 
 
 class UnknownField(object):

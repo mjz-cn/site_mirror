@@ -71,11 +71,12 @@ def init_config(execute_dir, conf_path=None):
 def init_log(log_path):
     log_path = os.path.join(global_config.execute_dir, log_path)
     log_dir = os.path.dirname(log_path)
+    log_level = global_config.get('log::level').upper()
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.15s] [%(name)s] [%(levelname)-8.8s]  %(message)s")
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(log_level)
 
     file_handler = logging.handlers.TimedRotatingFileHandler(log_path)
     file_handler.setFormatter(log_formatter)
