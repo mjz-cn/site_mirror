@@ -1,5 +1,6 @@
 # coding: utf-8
 import logging
+import threading
 
 import peewee
 
@@ -15,6 +16,7 @@ class MysqlScheduler:
         self.logger = logging.getLogger(MysqlScheduler.__name__)
         self.task = task
         self.task_key = self.task.get_uuid()
+        self._lock = threading.Lock()
 
     def poll(self):
         """
@@ -58,10 +60,11 @@ class MysqlScheduler:
         """
             判断request是否被访问过，如果没有则插入已访问过的的队列中
         """
+        ret = False
         try:
             UrlDuplicateCheck.insert(task_key=self.task_key, url_md5=tools.md5(request.url), url=request.url,
                                      origin_url=request.origin_url).execute()
         except peewee.IntegrityError as e:
             self.logger.debug("Duplicate url:{}, ex:{} ".format(request.url, str(e)))
-            return True
-        return False
+            ret = True
+        return ret

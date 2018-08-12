@@ -8,6 +8,8 @@ from urllib import parse
 
 from atomos import atomic
 
+from config import config
+
 
 def _raise_thread_exception(future):
     if future._exception:
@@ -107,8 +109,13 @@ def delete_scheme(url):
 
 def abs_url(refer, url):
     # 过滤掉无效的URL
-    if url.startswith('#') or url.startswith('javascript:') or url.startswith('mailto:'):
+    if url:
+        url = url.strip()
+    if not url or url.startswith('#') or url.startswith('javascript:') or url.startswith('mailto:'):
         return
+    up = parse.urlparse(refer)
+    if url.startswith('//'):
+        return up.scheme + url
     return parse.urljoin(refer, url)
 
 
@@ -127,3 +134,21 @@ def should_process(content_type):
 def common_path(url1, url2):
     li = os.path.commonprefix([url1.split('/'), url2.split('/')])
     return '/'.join(li)
+
+
+def replace_suffix(url):
+    mu = MutableUrl(url)
+    url_path = mu.path
+    li = url_path.split('/')
+    if li[-1]:
+        suffix_li = li[-1].split('.')
+        if len(suffix_li) >= 2:
+            suffix = suffix_li[-1]
+            if suffix in config.global_config.get_tuple('params::to_html'):
+                suffix = 'html'
+                suffix_li[-1] = suffix
+                li[-1] = '.'.join(suffix_li)
+                url_path = '/'.join(li)
+                mu.path = url_path
+                return mu.to_new_url()
+    return url

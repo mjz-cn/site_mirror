@@ -7,6 +7,7 @@ import re
 from pyquery import PyQuery
 
 from mirror.libs import tools
+from mirror.libs.components import SpiderException
 
 r_url = re.compile(r'[^\w]+url\(([^)]+)\)')
 
@@ -53,7 +54,7 @@ class LocalFilePipeline:
         elif li[-1].find('.') == -1:
             li[-1] += '/index.html'
         mu.path = '/'.join(li)
-        return mu.to_new_url()
+        return tools.replace_suffix(mu.to_new_url())
 
     def to_local_url(self, parent_url, url):
         """
@@ -86,9 +87,47 @@ class LocalFilePipeline:
         path = os.path.join(self.site.storage_path, url)
         return path
 
+    def get_encodings(self, page):
+        return [(page.encoding, 'strict'),
+                (page.apparent_encoding, 'strict'),
+                (page.response.encoding, 'strict'),
+                (page.response.apparent_encoding, 'strict'),
+                (self.site.charset, 'strict'),
+                (page.encoding, 'ignore'),
+                (page.apparent_encoding, 'ignore'),
+                (page.response.encoding, 'ignore'),
+                (page.response.apparent_encoding, 'ignore'),
+                (self.site.charset, 'ignore'),
+                ]
+
+    def decode_html(self, page):
+        encodings = self.get_encodings(page)
+        for encoding, errors in encodings:
+            try:
+                html = page.raw_content.decode(encoding, errors)
+                return html
+            except UnicodeDecodeError:
+                pass
+        raise SpiderException(
+            "Can not decode html page, url: {}, content_type: {}, charset: {}".format(page.url, page.content_type,
+                                                                                      page.response.apparent_encoding))
+
+    def encode_html(self, page, html):
+        encodings = self.get_encodings(page)
+        for encoding, errors in encodings:
+            try:
+                raw_html = html.encode(encoding, errors)
+                return raw_html
+            except UnicodeEncodeError:
+                pass
+        raise SpiderException(
+            "Can not decode html page, url: {}, content_type: {}, charset: {}".format(page.url, page.content_type,
+                                                                                      page.response.apparent_encoding))
+
     def reconstruct_html(self, page):
         # 解析页面，替换其中所有的url
-        page_query = PyQuery(page.raw_content)
+        text = self.decode_html(page)
+        page_query = PyQuery(text)
         page_filter_url = self.filter_query(page, page.url)
         # 替换所有的href, src
         for tag in page_query('[href],[src]'):
@@ -104,17 +143,14 @@ class LocalFilePipeline:
                 url = self.filter_query(page, url)
                 if url:
                     url = self.to_local_url(page_filter_url, url)
+                if url:
                     tag.attr(attr_name, url)
             except Exception as e:
-                self.logger.error('filter query error, url:' + url)
-                raise e
+                self.logger.error('filter query error, url:' + str(url))
 
         html = page_query.outer_html()
-        try:
-            raw_data = html.encode('utf-8')
-        except UnicodeEncodeError as e:
-            raw_data = html.encode(page.encoding)
-        return raw_data
+        # 兼容编码
+        return self.encode_html(page, html)
 
     def reconstruct_css(self, page):
         css_content = page.text
@@ -150,10 +186,14 @@ class LocalFilePipeline:
         file_path = self.to_file_path(file_query)
         # 检测目录是否存在，不存在则创建新目录
         self.check_path(file_path)
-        with open(file_path, 'wb') as fd:
-            self.logger.error("write page, url: {}, file_path:{},  encoding: {}".format(page.url, file_path, page.encoding))
-            fd.write(page.encoding.encode('utf-8') + b'\n\n' + page.raw_content)
-            return
+        # if tools.is_html(page.content_type):
+        #     self.logger.info(
+        #         "write page, url: {}, file_path:{},  encoding: {}".format(page.url, file_path, page.encoding))
+        #     data = page.raw_content.decode(page.encoding)
+        #     with open(file_path, 'w') as fd:
+        #         fd.write(page.encoding + '\n\n' + data)
+        #         return
+
         # 获取原始数据, 如果是html页面则替换其中的url为本地的url
         raw_data = self.reconstruct_data(page)
         # 存储

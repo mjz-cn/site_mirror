@@ -86,6 +86,7 @@ class Spider:
         if start_urls:
             start_requests = list()
             for url in start_urls:
+                url = url.rstrip('/')
                 request = components.Request(url, url, self._site.charset)
                 start_requests.append(request)
             for request in start_requests:

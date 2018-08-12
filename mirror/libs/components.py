@@ -7,7 +7,7 @@ from config.config import global_config
 
 
 class SpiderException(Exception):
-    def __init__(self, message, errors):
+    def __init__(self, message, errors=None):
         super().__init__(message)
 
         self.errors = errors
@@ -84,11 +84,19 @@ class Page:
 
     @property
     def encoding(self):
-        if self._header_charset:
-            return self._header_charset
-        elif self.response.apparent_encoding:
-            return self.response.apparent_encoding
+        if not self.response.encoding:
+            return
+        if self.response.encoding.lower() == 'gb2312':
+            return 'gbk'
         return self.response.encoding
+
+    @property
+    def apparent_encoding(self):
+        if not self.response.apparent_encoding:
+            return
+        if self.response.apparent_encoding.lower() == 'gb2312':
+            return 'gbk'
+        return self.response.apparent_encoding
 
     @property
     def content_type(self):

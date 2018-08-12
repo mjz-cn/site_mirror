@@ -5,8 +5,8 @@ import requests
 from requests import RequestException
 
 from mirror.libs.components import Request
-
 from mirror.libs.components import Page
+from mirror.models.models import UrlDuplicateCheck
 
 
 class Downloader:
@@ -35,6 +35,10 @@ class Downloader:
         status_code = resp.status_code
         request.put_extra(Request.STATUS_CODE, status_code)
         page = Page(request, resp)
+        self.logger.info(
+            "Success download url:{}, status_code: {}, content_type:{}, encoding:{}, app_encoding: {}".format(
+                page.url, page.status_code, page.content_type, page.encoding, page.apparent_encoding
+            ))
 
         if self.site.accept(page):
             return page

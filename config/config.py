@@ -20,11 +20,11 @@ def _parse(key):
 class _Config:
 
     def __init__(self, conf_path, execute_dir):
-        config = configparser.ConfigParser()
-        config.read(conf_path, 'utf-8')
+        _config = configparser.ConfigParser()
+        _config.read(conf_path, 'utf-8')
 
         self.conf_path = conf_path
-        self.config = config
+        self.config = _config
         self.execute_dir = execute_dir
 
     def get_int(self, key, default=0):
@@ -47,9 +47,28 @@ class _Config:
             return default
         return float(val)
 
+    def get_list(self, key, default=None, ty=str):
+        if default is None:
+            default = []
+        val = self.get(key)
+        if not val:
+            return default
+        return [ty(item.strip()) for item in val.split(',')]
+
+    def get_tuple(self, key, default=None, ty=str):
+        if default is None:
+            default = []
+        val = self.get(key)
+        if not val:
+            return default
+        return (ty(item.strip()) for item in val.split(','))
+
     def get(self, key):
         section, child_key = _parse(key)
-        return self.config.get(section, child_key)
+        val = self.config.get(section, child_key)
+        if val:
+            return val.strip()
+        return val
 
 
 # 初始化全局配置
@@ -58,12 +77,13 @@ def init_config(execute_dir, conf_path=None):
         配置文件查找顺序: 指定配置文件>执行目录下的配置文件>当前目录下的配置
     :return:
     """
-    if not conf_path or not os.path.exists(conf_path):
+    if not conf_path:
         # 检测执行目录下是否有配置文件
         conf_path = os.path.join(execute_dir, 'config/' + _CONF_NAME)
-    elif not os.path.exists(conf_path):
-        py_path = os.path.realpath(__file__)
-        conf_path = os.path.join(os.path.dirname(py_path), _CONF_NAME)
+        # 检查代码路径下的配置文件
+        if not os.path.exists(conf_path):
+            py_path = os.path.realpath(__file__)
+            conf_path = os.path.join(os.path.dirname(py_path), _CONF_NAME)
     return _Config(conf_path, execute_dir)
 
 
