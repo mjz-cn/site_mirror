@@ -6,6 +6,7 @@ import re
 
 from pyquery import PyQuery
 
+from config.config import global_config
 from mirror.libs import tools
 from mirror.libs.components import SpiderException
 
@@ -88,16 +89,14 @@ class LocalFilePipeline:
         return path
 
     def get_encodings(self, page):
-        return [(page.encoding, 'strict'),
-                (page.apparent_encoding, 'strict'),
-                (page.response.encoding, 'strict'),
+        return [(page.apparent_encoding, 'strict'),
                 (page.response.apparent_encoding, 'strict'),
-                (self.site.charset, 'strict'),
-                (page.encoding, 'ignore'),
-                (page.apparent_encoding, 'ignore'),
-                (page.response.encoding, 'ignore'),
-                (page.response.apparent_encoding, 'ignore'),
-                (self.site.charset, 'ignore'),
+                (page.encoding, 'strict'),
+                (page.response.encoding, 'strict'),
+                (page.apparent_encoding, 'replace'),
+                (page.response.apparent_encoding, 'replace'),
+                (page.encoding, 'replace'),
+                (page.response.encoding, 'replace'),
                 ]
 
     def decode_html(self, page):
@@ -105,20 +104,8 @@ class LocalFilePipeline:
         for encoding, errors in encodings:
             try:
                 html = page.raw_content.decode(encoding, errors)
-                return html
+                return html, encoding, errors
             except UnicodeDecodeError:
-                pass
-        raise SpiderException(
-            "Can not decode html page, url: {}, content_type: {}, charset: {}".format(page.url, page.content_type,
-                                                                                      page.response.apparent_encoding))
-
-    def encode_html(self, page, html):
-        encodings = self.get_encodings(page)
-        for encoding, errors in encodings:
-            try:
-                raw_html = html.encode(encoding, errors)
-                return raw_html
-            except UnicodeEncodeError:
                 pass
         raise SpiderException(
             "Can not decode html page, url: {}, content_type: {}, charset: {}".format(page.url, page.content_type,
@@ -126,7 +113,9 @@ class LocalFilePipeline:
 
     def reconstruct_html(self, page):
         # 解析页面，替换其中所有的url
-        text = self.decode_html(page)
+        text, encoding, errors = self.decode_html(page)
+        if encoding is None:
+            return page.raw_content
         page_query = PyQuery(text)
         page_filter_url = self.filter_query(page, page.url)
         # 替换所有的href, src
@@ -140,17 +129,22 @@ class LocalFilePipeline:
                 url = tag.attr(attr_name)
             # 过滤参数
             try:
+                abs_url = tools.abs_url(page.url, url)
                 url = self.filter_query(page, url)
                 if url:
                     url = self.to_local_url(page_filter_url, url)
                 if url:
                     tag.attr(attr_name, url)
+                elif abs_url:
+                    # url蛋疼的匹配
+                    tag.attr(attr_name, abs_url)
             except Exception as e:
                 self.logger.error('filter query error, url:' + str(url))
 
         html = page_query.outer_html()
+        # html = html.replace('&nbsp;', ' ')
         # 兼容编码
-        return self.encode_html(page, html)
+        return html.encode(encoding, 'replace')
 
     def reconstruct_css(self, page):
         css_content = page.text
@@ -159,6 +153,7 @@ class LocalFilePipeline:
             url = self.filter_query(page, origin_url)
             if url:
                 url = self.to_local_url(page_filter_url, url)
+            if url:
                 css_content = css_content.replace(origin_url, url)
         return css_content.encode(page.encoding)
 

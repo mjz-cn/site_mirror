@@ -115,7 +115,7 @@ def abs_url(refer, url):
         return
     up = parse.urlparse(refer)
     if url.startswith('//'):
-        return up.scheme + url
+        return up.scheme + ':' + url
     return parse.urljoin(refer, url)
 
 

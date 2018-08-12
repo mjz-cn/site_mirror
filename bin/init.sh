@@ -26,8 +26,11 @@ echo -e '\n\n\n'
 echo "------------------------- 开始初始化mysql数据库 -------------------------"
 # 初始化数据库
 cd ${CONFIG_DIR}
-host=`awk -F '=' '{if (! ($0 ~ /^;/) && $0 ~ /host/) print $2}' conf.ini`
-user=`awk -F '=' '{if (! ($0 ~ /^;/) && $0 ~ /user/) print $2}' conf.ini`
-password=`awk -F '=' '{if (! ($0 ~ /^;/) && $0 ~ /password/) print $2}' conf.ini`
+echo 'Mysql host:'
+read host
+echo -e 'Mysql user:'
+read user
+echo -e 'Mysql password:'
+read password
 mysql -h ${host} -u ${user} -p"${password}" < mirror.sql
 echo "------------------------- 成功初始化mysql数据库 -------------------------"

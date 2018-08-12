@@ -3,9 +3,12 @@ atomos==0.3.1
 certifi==2018.4.16
 cffi==1.11.5
 chardet==3.0.4
+coloredlogs==10.0
 cryptography==2.3
 cssselect==1.0.3
+humanfriendly==4.16.1
 idna==2.7
+lxml==4.2.4
 packaging==17.1
 peewee==3.6.4
 pluggy==0.7.1

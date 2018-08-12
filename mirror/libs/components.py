@@ -58,6 +58,8 @@ class Page:
         self._target_requests = set()
         # 从response中解析出的charset, 最优先使用
         self._header_charset = None
+        self._encoding = None
+        self._app_encoding = None
 
     def add_target_request(self, request):
         self._target_requests.add(request)
@@ -84,19 +86,25 @@ class Page:
 
     @property
     def encoding(self):
+        if self._encoding:
+            return self._encoding
         if not self.response.encoding:
             return
         if self.response.encoding.lower() == 'gb2312':
             return 'gbk'
-        return self.response.encoding
+        self._encoding = self.response.encoding
+        return self._encoding
 
     @property
     def apparent_encoding(self):
+        if self._app_encoding:
+            return self._app_encoding
         if not self.response.apparent_encoding:
             return
         if self.response.apparent_encoding.lower() == 'gb2312':
             return 'gbk'
-        return self.response.apparent_encoding
+        self._app_encoding = self.response.apparent_encoding
+        return self._app_encoding
 
     @property
     def content_type(self):

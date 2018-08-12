@@ -77,13 +77,16 @@ def init_config(execute_dir, conf_path=None):
         配置文件查找顺序: 指定配置文件>执行目录下的配置文件>当前目录下的配置
     :return:
     """
-    if not conf_path:
+    if not conf_path or not conf_path.startswith('/'):
         # 检测执行目录下是否有配置文件
-        conf_path = os.path.join(execute_dir, 'config/' + _CONF_NAME)
+        if not conf_path:
+            conf_path = _CONF_NAME
+        conf_path_t = os.path.join(execute_dir, 'config/' + conf_path)
         # 检查代码路径下的配置文件
-        if not os.path.exists(conf_path):
+        if not os.path.exists(conf_path_t):
             py_path = os.path.realpath(__file__)
-            conf_path = os.path.join(os.path.dirname(py_path), _CONF_NAME)
+            conf_path_t = os.path.join(os.path.dirname(py_path), conf_path)
+        conf_path = conf_path_t
     return _Config(conf_path, execute_dir)
 
 
