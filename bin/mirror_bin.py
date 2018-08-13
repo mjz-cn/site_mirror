@@ -10,7 +10,7 @@ base_path = os.path.dirname(os.path.dirname(a))
 def main():
     ap = argparse.ArgumentParser(description='future')
     ap.add_argument('-d', '--executeDir', type=str,
-                    help='执行目录，日志，网站会存在这个目录下面',
+                    help='执行目录，日志，网站数据会存储这个目录下面',
                     default=base_path)
     ap.add_argument('-c', '--confPath', type=str,
                     help='配置文件路径, 配置文件查找顺序: 指定配置文件>执行目录下的配置文件>当前目录下的配置',
