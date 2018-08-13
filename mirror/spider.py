@@ -141,10 +141,11 @@ class Spider:
 
                         except Exception as e:
                             self.logger.error("Process request error, url: {}, exception: {}".format(req.url, e))
-                            raise e
                         finally:
                             self.signal_new_url()
+
                     return runner
+
                 self._threadPool.submit(new_runner(request))
         self._stat.set(STAT_STOPPED)
 

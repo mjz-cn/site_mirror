@@ -34,11 +34,11 @@
 3. 运行方式, bash bin/mirror.sh, 如果不加参数则使用 config/conf.ini配置.
 	1. `bash bin/mirror.sh -c /tmp/conf.ini `表示使用/tmp/conf.ini配置文件
 	
-	2. `bash bin/mirror.sh -c /tmp/conf-dygang.ini ` 
+	2. `bash bin/mirror.sh -c "/tmp/conf-dygang.ini" ` 
 	
-	3. `bash bin/mirror.sh -d /tmp/ ` 表示/tmp/作为执行目录，日志和下载的数据会存储到这个目录下，并且会优先从这个目录下`/tmp/config`寻找配置文件
+	3. `bash bin/mirror.sh -d "/tmp/" ` 表示/tmp/作为执行目录，日志和下载的数据会存储到这个目录下，并且会优先从这个目录下`/tmp/config`寻找配置文件
 	
-	4. `bash bin/mirror.sh -d /tmp/ -c /tmp1/conf-test.ini` 表示/tmp/作为执行目录，日志和下载的数据会存储到这个目录下，但是会优先使用`/tmp1/conf-test.ini`
+	4. `bash bin/mirror.sh -d "/tmp/" -c "/tmp1/conf-test.ini"` 表示/tmp/作为执行目录，日志和下载的数据会存储到这个目录下，但是会优先使用`/tmp1/conf-test.ini`
 	
 	5. 但是指定本次程序中加载的配置文件`*.ini`其中如果配置日志和数据路径为绝对路径，则数据会存储到绝对路径下。
 

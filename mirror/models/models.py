@@ -11,6 +11,7 @@ database = MySQLDatabase('mirror', **{'charset': 'utf8',
                                       'password': global_config.get('mysql::password'),
                                       }
                          )
+# mysql事务问题
 database.connect_params['autocommit'] = True
 
 

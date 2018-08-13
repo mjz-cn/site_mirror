@@ -181,14 +181,6 @@ class LocalFilePipeline:
         file_path = self.to_file_path(file_query)
         # 检测目录是否存在，不存在则创建新目录
         self.check_path(file_path)
-        # if tools.is_html(page.content_type):
-        #     self.logger.info(
-        #         "write page, url: {}, file_path:{},  encoding: {}".format(page.url, file_path, page.encoding))
-        #     data = page.raw_content.decode(page.encoding)
-        #     with open(file_path, 'w') as fd:
-        #         fd.write(page.encoding + '\n\n' + data)
-        #         return
-
         # 获取原始数据, 如果是html页面则替换其中的url为本地的url
         raw_data = self.reconstruct_data(page)
         # 存储
