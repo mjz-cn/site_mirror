@@ -4,7 +4,7 @@ certifi==2018.4.16
 cffi==1.11.5
 chardet==3.0.4
 coloredlogs==10.0
-cryptography==2.3
+cryptography==3.2
 cssselect==1.0.3
 humanfriendly==4.16.1
 idna==2.7
