@@ -12,7 +12,7 @@ lxml==4.2.4
 packaging==17.1
 peewee==3.6.4
 pluggy==0.7.1
-py==1.5.4
+py==1.10.0
 pycparser==2.18
 PyMySQL==0.9.2
 pyparsing==2.2.0
